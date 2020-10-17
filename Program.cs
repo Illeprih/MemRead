@@ -76,9 +76,6 @@ namespace MemRead {
 
         public static byte[] ReadAoB(IntPtr processHandle, long startAddr, long endAddr) {
             long len = (long) (endAddr - startAddr);
-            if (len < 0) {
-                len = 2000000;
-            }
             byte[] buffer = new byte[len];
 
             ReadProcessMemory(processHandle, startAddr, buffer, len, out long bytesRead);
