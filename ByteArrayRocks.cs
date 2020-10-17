@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace MemRead {
     static class ByteArrayRocks {
@@ -11,23 +7,20 @@ namespace MemRead {
         public static int[] Locate(this byte[] self, byte[] candidate, byte[] mask) {
             if (IsEmptyLocate(self, candidate))
                 return Empty;
-
             var list = new List<int>();
-
             for (int i = 0; i < self.Length; i++) {
-                if (!IsMatch(self, i, candidate, mask))
+                if (!IsMatch(self, i, candidate, mask)) {
                     continue;
-
+                } 
                 list.Add(i);
             }
-
             return list.Count == 0 ? Empty : list.ToArray();
         }
 
         static bool IsMatch(byte[] array, int position, byte[] candidate, byte[] mask) {
-            if (candidate.Length > (array.Length - position))
+            if (candidate.Length > (array.Length - position)) {
                 return false;
-
+            }
             for (int i = 0; i < candidate.Length; i++) {
                 if (mask[i] == 0x00) {
                     if (array[position + i] != candidate[i]) {
@@ -41,12 +34,6 @@ namespace MemRead {
                  
             }
             return true;
-        }
-
-        static void Test(this byte[] self, byte[] candidate, byte[] mask, int i, List<int> list) {
-            if (IsMatch(self, i, candidate, mask)) {
-                list.Add(i);
-            }
         }
 
         static bool IsEmptyLocate(byte[] array, byte[] candidate) {

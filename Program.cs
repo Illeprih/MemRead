@@ -1,19 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
-using Microsoft.VisualBasic;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
+
 
 namespace MemRead {
     class Program {
         const int PROCESS_ALL_ACCESS = 0x1F0FFF;
-
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
 
@@ -34,16 +28,12 @@ namespace MemRead {
             long start = startOffset.ToInt64();
             IntPtr endOffset = IntPtr.Add(startOffset, process.MainModule.ModuleMemorySize);
             long end = endOffset.ToInt64();
-            Console.WriteLine(start.ToString("X2"));
 
             IntPtr processHandle = OpenProcess(PROCESS_ALL_ACCESS, false, process.Id);
 
-            //Console.WriteLine(ReadMem(processHandle, 0xB125F4));
 
-            //WriteMem(processHandle, 0xB125F0, 0);
-
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            var results = AoBScan(processHandle, start, end, "00 01 02 03 04");
+            var watch = Stopwatch.StartNew();
+            var results = AoBScan(processHandle, start, end, "50 53 2D 58 20 45 58 45");
             watch.Stop();
             var elapsedMs = watch.ElapsedMilliseconds;
 
@@ -57,9 +47,7 @@ namespace MemRead {
 
         public static Int16 ReadMem(IntPtr processHandle, long address) {
             byte[] buffer = new byte[2];
-
             ReadProcessMemory(processHandle, address, buffer, buffer.Length, out long bytesRead);
-
             return BitConverter.ToInt16(buffer);
         }
 
@@ -77,9 +65,7 @@ namespace MemRead {
         public static byte[] ReadAoB(IntPtr processHandle, long startAddr, long endAddr) {
             long len = (long) (endAddr - startAddr);
             byte[] buffer = new byte[len];
-
             ReadProcessMemory(processHandle, startAddr, buffer, len, out long bytesRead);
-
             return buffer;
         }
 
@@ -112,23 +98,12 @@ namespace MemRead {
                 }
                 i++;
             }
-            int iter = 3000000;
-
+            int iter = 1000000;
             var tasks = new List<Task>();
 
-            for (int chunk = 0; chunk < 1 + (endAddr - startAddr) / iter; chunk++) {
-                /*
-                byte[] data = ReadAoB(processHandle, Math.Max(startAddr, startAddr + chunk * iter - maskStr.Length), Math.Min(endAddr, startAddr + iter + chunk * iter));
-                foreach (var position in data.Locate(pattern, maskArr)) {
-                    results.Add(position + chunk * iter);
-                }
-                */
-                
+            for (int chunk = 0; chunk < 1 + (endAddr - startAddr) / iter; chunk++) { //Splits addresses into 1mil + mask size (to check overlap) chunks and runs them in parallel.
                 long start = Math.Max(startAddr, startAddr + chunk * iter - maskStr.Length);
                 long end = Math.Min(endAddr, startAddr + iter + chunk * iter);
-                int chunk2 = chunk;
-                
-                
                 
                 Task t = new Task(() => {
                     byte[] data = ReadAoB(processHandle, start, end);
@@ -137,23 +112,17 @@ namespace MemRead {
                     }
                 });
                 tasks.Add(t);
-                
-                
-                
             }
             
             foreach (Task t in tasks) {
                 t.Start();
             }
             Task.WaitAll(tasks.ToArray());
-            
             return results;
-            
         }
 
         public static void MatchMask(int index, byte[] array, List<int> resultList, string[] maskStr) {
             bool check = true;
-
             for (int i = 0; i < maskStr.Length; i++) {
                 if (array[i] != (byte)Convert.ToInt16(maskStr[i], 16)) {
                     check = false;
@@ -164,13 +133,6 @@ namespace MemRead {
                 resultList.Add(index);
             }
 
-        }
-
-        public static void Test(IntPtr processHandle, long startAddr, long endAddr, byte[] pattern, byte[] maskArr, int chunk, int iter, List<int> results) {
-            byte[] data = ReadAoB(processHandle, startAddr, endAddr);
-            foreach (var position in data.Locate(pattern, maskArr)) {
-                results.Add(position + chunk * iter);
-            }
         }
     }
 }
